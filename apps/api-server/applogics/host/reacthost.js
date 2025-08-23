@@ -57,7 +57,7 @@ const reactHost = async (req, res) => {
             },
             {
               name: "bucket",
-              value: "deploylite.tech.prod",
+              value: "status-code-deploylite",
             },
             {
               name: "installcommand",

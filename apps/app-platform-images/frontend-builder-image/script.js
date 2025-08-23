@@ -63,7 +63,7 @@ const publishLog = (message, type = LOG_TYPES.INFO) => {
 // Update Deployment Status
 const updateDeploymentStatus = async (status) => {
     try {
-        await axios.post("https://api.deploylite.tech/status/deploy", {
+        await axios.post("https://api.deploylite.xyz/status/deploy", {
             name: projectid,
             status
         }, {
@@ -110,7 +110,7 @@ const init = async () => {
 
         await updateDeploymentStatus("live");
         publishLog("🎉 Deployment completed successfully", LOG_TYPES.SUCCESS);
-        publishLog(`🌐 Website is live at: https://${projectid}.cloud.deploylite.tech`, LOG_TYPES.SUCCESS);
+        publishLog(`🌐 Website is live at: https://${projectid}.cloud.deploylite.xyz`, LOG_TYPES.SUCCESS);
         process.exit(0);
 
     } catch (err) {

@@ -304,7 +304,7 @@ console.log("response data is ",response.output_text);
   const fetchAllRepo = async () => {
     try {
       setRepoLoading(true);
-      const repodata = await fetch("https://api.github.com/user/repos?per_page=500", {
+      const repodata = await fetch("https://api.github.com/user/repos?per_page=1000", {
         headers: { Authorization: `token ${user.githubtoken}` },
       });
       const res = await repodata.json();

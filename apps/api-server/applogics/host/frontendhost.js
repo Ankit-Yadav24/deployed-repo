@@ -8,7 +8,8 @@ const frontendHost = async (req, res) => {
   //getting the giturl and projectid
   const { giturl, projectid, techused } = req.body;
 
-  console.log(giturl, projectid);
+  console.log("config is", config);
+  console.log("all env's are", process.env.accesskeyid,"secret is", process.env.accesskeysecret,"region is", process.env.region);
   const cmd = new RunTaskCommand({
     cluster: config.cluster,
     taskDefinition: config.task,
@@ -52,7 +53,7 @@ const frontendHost = async (req, res) => {
             },
             {
               name: "bucket",
-              value: "deploylite.tech.prod",
+              value: "status-code-deploylite",
             },
           ],
         },

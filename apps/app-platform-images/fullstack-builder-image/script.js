@@ -38,7 +38,7 @@ const publishLog = (message, type = 'info') => {
 // Status updater
 const updateDeploymentStatus = async (status) => {
     try {
-        await axios.post("https://api.deploylite.tech/status/deploy", {
+        await axios.post("https://api.deploylite.xyz/status/deploy", {
             name: projectid,
             status: status
         }, {
