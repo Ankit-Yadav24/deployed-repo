@@ -25,6 +25,7 @@ app.use(async (req, res) => {
     if (!data) {
         return res.status(404).send('Subdomain not found.Deploylite is working on it.');
     }
+    
 
     const resolvesto = data.startsWith('http') ? data : `http://${data}`;
     console.log(hostname, subdomain, resolvesto);
