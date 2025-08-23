@@ -111,7 +111,7 @@ export const POST = async (req: NextRequest) => {
       // Create temp payment record with order ID (within transaction)
       const tempPayment = new TempPayment({
         email: result.email,
-        amount: data.amount, // Store original amount (not in paisa)
+        amount: data.amount, 
         orderId: (order as any).id,
         status: 'pending'
       });
@@ -137,7 +137,7 @@ export const POST = async (req: NextRequest) => {
           orderId: (order as any).id,
           amount: data.amount,
           email: result.email,
-          flow: "direct_success" // Indicate we're using direct flow
+          flow: "direct_success" 
         }
       });
 

@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
+import type { DialogContentProps, DialogOverlayProps, DialogTitleProps, DialogDescriptionProps } from "@radix-ui/react-dialog"
 import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
 
@@ -16,8 +17,8 @@ const SheetClose = SheetPrimitive.Close
 const SheetPortal = SheetPrimitive.Portal
 
 const SheetOverlay = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
+  HTMLDivElement,
+  DialogOverlayProps & { className?: string }
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     className={cn(
@@ -50,11 +51,17 @@ const sheetVariants = cva(
 )
 
 interface SheetContentProps
-  extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {}
+  extends React.ComponentPropsWithoutRef<"div">,
+    VariantProps<typeof sheetVariants> {
+  onOpenAutoFocus?: DialogContentProps["onOpenAutoFocus"];
+  onCloseAutoFocus?: DialogContentProps["onCloseAutoFocus"];
+  onEscapeKeyDown?: DialogContentProps["onEscapeKeyDown"];
+  onPointerDownOutside?: DialogContentProps["onPointerDownOutside"];
+  onInteractOutside?: DialogContentProps["onInteractOutside"];
+}
 
 const SheetContent = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Content>,
+  HTMLDivElement,
   SheetContentProps
 >(({ side = "right", className, children, ...props }, ref) => (
   <SheetPortal>
@@ -103,8 +110,8 @@ const SheetFooter = ({
 SheetFooter.displayName = "SheetFooter"
 
 const SheetTitle = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
+  HTMLHeadingElement,
+  DialogTitleProps & { className?: string }
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Title
     ref={ref}
@@ -115,8 +122,8 @@ const SheetTitle = React.forwardRef<
 SheetTitle.displayName = SheetPrimitive.Title.displayName
 
 const SheetDescription = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Description>
+  HTMLParagraphElement,
+  DialogDescriptionProps & { className?: string }
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Description
     ref={ref}

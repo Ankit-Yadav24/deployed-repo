@@ -23,7 +23,7 @@ export const GET = async()=>{
             return NextResponse.json({error:"Vultr account not found",status:false});
         }
         const response = await getAccountInfo(findvultr.apikey);
-        //update charge then
+        //update charge thena
         let updatecharge = await Vultr.updateOne({userid:finduser._id},{$set:{pending_charge:response.data.account.pending_charges}});
         return NextResponse.json({
             message:"Successfully fetched account details",
