@@ -7,8 +7,10 @@ declare global {
   }
 }
 
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
+import React from "react";
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ethers } from "ethers";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -26,24 +27,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import {
   CreditCardIcon,
-  DollarSignIcon,
   SettingsIcon,
   AlertTriangleIcon,
   FileTextIcon,
   RefreshCwIcon,
   WalletIcon,
   TrendingUpIcon,
-  CalendarIcon,
   ArrowUpIcon,
   ArrowDownIcon,
   Loader2,
   Plus,
-  Minus,
   Activity,
   Eye,
   EyeOff,
   Download,
   CopyIcon,
+  Bug,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 import {
@@ -57,11 +58,19 @@ import {
   Legend,
   BarElement,
 } from "chart.js";
-import { Line, Bar } from "react-chartjs-2";
+import { Line } from "react-chartjs-2";
 import { useAppSelector, useAppDispatch } from "@/lib/hook";
 import { add as addWallet } from "@/lib/features/wallet/Wallet";
 import { add as addUser } from "@/lib/features/user/User";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+
+const DynamicToaster = dynamic(
+  () => import("sonner").then((mod) => mod.Toaster),
+  { 
+    ssr: false,
+    loading: () => null
+  }
+) as React.ComponentType<any>;
 
 ChartJS.register(
   CategoryScale,
@@ -103,9 +112,15 @@ interface ProjectData {
   memoryusage?: string;
 }
 
+interface DebugData {
+  user: any;
+  wallet: any;
+  tempPayments: any;
+  environment: any;
+}
+
 export default function WalletComponent() {
   const user = useAppSelector((state) => state.user.user);
-  const walletState = useAppSelector((state) => state.wallet.wallet);
   const dispatch = useAppDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -122,44 +137,99 @@ export default function WalletComponent() {
   const [cryptoWalletAddress, setCryptoWalletAddress] = useState("");
   const [cryptoBalance, setCryptoBalance] = useState("0");
   const [cryptoAmount, setCryptoAmount] = useState("");
+  
+  // Debug state
+  const [debugMode, setDebugMode] = useState(false);
+  const [debugData, setDebugData] = useState<DebugData | null>(null);
+  const [debugLoading, setDebugLoading] = useState(false);
 
-  // Check for payment status in URL and show notifications
+  // Safe transaction sorting function
+  const getSortedTransactions = (transactions: Transaction[]) => {
+    if (!transactions || !Array.isArray(transactions)) {
+      return [];
+    }
+    
+    // Always create a copy before sorting
+    return [...transactions].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateB - dateA; // Most recent first
+    });
+  };
+
+  // Enhanced payment status handling with better error reporting
   useEffect(() => {
     const paymentStatus = searchParams?.get('payment');
     const amount = searchParams?.get('amount');
+    const newBalance = searchParams?.get('new_balance');
+    const orderId = searchParams?.get('order_id');
+    const paymentId = searchParams?.get('payment_id');
+    const message = searchParams?.get('message');
+
+    console.log('URL Parameters:', {
+      paymentStatus,
+      amount,
+      newBalance,
+      orderId,
+      paymentId,
+      message
+    });
 
     if (paymentStatus === 'success' && amount) {
-      toast.success(`Payment successful! ₹${amount} added to your wallet.`);
+      toast.success(
+        `Payment successful! ₹${amount} added to your wallet.${
+          newBalance ? ` New balance: ₹${newBalance}` : ''
+        }`
+      );
+      
+      // Force refresh wallet data after successful payment
+      setTimeout(() => {
+        console.log('Refreshing wallet data after successful payment');
+        fetchUserAndWalletData();
+      }, 1000);
       
       // Clean up URL parameters after showing toast
       setTimeout(() => {
-        if (typeof window !== 'undefined') {
-          const url = new URL(window.location.href);
-          url.searchParams.delete('payment');
-          url.searchParams.delete('amount');
-          url.searchParams.delete('order_id');
-          window.history.replaceState({}, '', url.toString());
-        }
-      }, 1000);
+        cleanupUrlParams();
+      }, 3000);
+      
     } else if (paymentStatus === 'failed') {
-      toast.error('Payment verification failed. Please try again.');
+      const errorMsg = message || 'Payment verification failed. Please try again.';
+      toast.error(errorMsg);
+      cleanupUrlParams();
+      
     } else if (paymentStatus === 'error') {
-      toast.error('Payment processing error. Please contact support.');
+      const errorMessage = message || 'Payment processing error';
+      toast.error(`Payment error: ${errorMessage}. Please contact support if amount was deducted.`);
+      cleanupUrlParams();
     }
   }, [searchParams]);
+
+  const cleanupUrlParams = () => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      ['payment', 'amount', 'order_id', 'payment_id', 'new_balance', 'message'].forEach(param => {
+        url.searchParams.delete(param);
+      });
+      window.history.replaceState({}, '', url.toString());
+      console.log('URL parameters cleaned up');
+    }
+  };
 
   // Initial data fetch
   useEffect(() => {
     const initializeData = async () => {
       setInitialLoading(true);
       try {
-        // Always fetch fresh data when component mounts
+        console.log('Initializing wallet data...');
         await Promise.all([
           fetchUserAndWalletData(),
           fetchProjects()
         ]);
+        console.log('Wallet initialization complete');
       } catch (error) {
         console.error('Error initializing data:', error);
+        toast.error('Failed to load wallet data. Please refresh the page.');
       } finally {
         setInitialLoading(false);
       }
@@ -168,38 +238,55 @@ export default function WalletComponent() {
     initializeData();
   }, []);
 
-  // Fetch user and wallet data
+  // Enhanced fetch function with better error handling and immutable data
   const fetchUserAndWalletData = async () => {
     try {
       setRefreshing(true);
+      console.log('🔄 Fetching wallet data...');
+      
       const response = await fetch('/api/get/home', {
         method: 'GET',
-        credentials: 'include', // Include cookies for authentication
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
       });
       
       const data = await response.json();
-      console.log('Home API Response:', data);
+      console.log('📊 Home API Response:', data);
       
       if (data.success && data.user && data.wallet) {
-        // Update Redux store with fresh data
-        dispatch(addUser(data.user));
-        dispatch(addWallet(data.wallet));
-        setWalletData(data.wallet);
+        console.log('✅ Wallet data received:', {
+          balance: data.wallet.balance,
+          transactionCount: data.wallet.transactions?.length || 0,
+          balanceType: typeof data.wallet.balance
+        });
         
-        console.log('Wallet data updated:', data.wallet);
+        // Ensure data is properly copied and not referenced
+        const walletDataCopy = {
+          ...data.wallet,
+          balance: Number(data.wallet.balance) || 0,
+          transactions: data.wallet.transactions ? [...data.wallet.transactions] : []
+        };
+
+        const userDataCopy = { ...data.user };
+        
+        // Update Redux store with fresh data
+        dispatch(addUser(userDataCopy));
+        dispatch(addWallet(walletDataCopy));
+        setWalletData(walletDataCopy);
+        
       } else {
-        console.error('Failed to fetch user/wallet data:', data);
-        if (!data.success) {
-          // Only redirect to login if we're sure auth failed
+        console.error('❌ Failed to fetch user/wallet data:', data);
+        if (data.message && data.message.includes('Authentication')) {
           toast.error('Session expired. Please login again.');
           router.push('/login');
+        } else {
+          toast.error('Failed to load wallet data');
         }
       }
     } catch (error) {
-      console.error('Error fetching user/wallet data:', error);
+      console.error('💥 Error fetching user/wallet data:', error);
       toast.error('Error loading data. Please refresh the page.');
     } finally {
       setRefreshing(false);
@@ -223,9 +310,37 @@ export default function WalletComponent() {
       ];
 
       setProjects(allProjects);
-      console.log('Projects fetched:', allProjects.length);
+      console.log('📈 Projects fetched:', allProjects.length);
     } catch (error) {
       console.error('Error fetching projects:', error);
+    }
+  };
+
+  // Fetch debug data
+  const fetchDebugData = async () => {
+    try {
+      setDebugLoading(true);
+      console.log('🐛 Fetching debug data...');
+      
+      const response = await fetch('/api/debug/wallet', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      const data = await response.json();
+      console.log('🔍 Debug data received:', data);
+      
+      if (data.success) {
+        setDebugData(data.debug);
+      } else {
+        console.error('Failed to fetch debug data:', data);
+        toast.error('Failed to load debug information');
+      }
+    } catch (error) {
+      console.error('Error fetching debug data:', error);
+      toast.error('Error loading debug data');
+    } finally {
+      setDebugLoading(false);
     }
   };
 
@@ -233,18 +348,27 @@ export default function WalletComponent() {
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       if (window.Razorpay) {
+        console.log('✅ Razorpay script already loaded');
         resolve(true);
         return;
       }
+      
+      console.log('📥 Loading Razorpay script...');
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
+      script.onload = () => {
+        console.log('✅ Razorpay script loaded successfully');
+        resolve(true);
+      };
+      script.onerror = () => {
+        console.error('❌ Failed to load Razorpay script');
+        resolve(false);
+      };
       document.body.appendChild(script);
     });
   };
 
-  // Handle Razorpay payment
+  // Enhanced Razorpay payment handler with direct success flow
   const handleRazorpayPayment = async () => {
     if (!addFundsAmount || Number(addFundsAmount) <= 0) {
       toast.error("Please enter a valid amount");
@@ -252,7 +376,7 @@ export default function WalletComponent() {
     }
 
     if (!user?.email) {
-      toast.error("User not authenticated");
+      toast.error("User not authenticated. Please login again.");
       return;
     }
 
@@ -260,7 +384,11 @@ export default function WalletComponent() {
 
     try {
       const amount = Number(addFundsAmount);
-      console.log('Initiating payment for amount:', amount);
+      console.log('💳 Initiating payment:', {
+        amount,
+        userEmail: user.email,
+        userName: user.name
+      });
       
       const data = { amount, email: user.email, name: user.name };
 
@@ -272,55 +400,159 @@ export default function WalletComponent() {
       });
 
       const result = await response.json();
-      console.log('Precheckout response:', result);
+      console.log('🏦 Precheckout response:', result);
 
-      if (result.success) {
-        const scriptLoaded = await loadRazorpayScript();
-        if (!scriptLoaded) {
-          toast.error("Razorpay SDK failed to load.");
-          return;
-        }
+      if (!result.success) {
+        toast.error(result.message || "Payment initialization failed. Please try again.");
+        return;
+      }
 
-        const options = {
-          key: process.env.NEXT_PUBLIC_KEY_ID,
-          amount: result.order.amount,
-          currency: "INR",
-          name: "DeployLite",
-          description: "Add funds to DeployLite Wallet",
-          image: "/logo.png",
-          order_id: result.order.id,
-          callback_url: `${window.location.origin}/api/postcheckout`,
-          prefill: { name: user.name, email: user.email },
-          notes: { address: "DeployLite Corporate Office" },
-          theme: { color: "#8B5CF6" },
-          handler: function (response: any) {
-            console.log('Payment successful:', response);
-            toast.success("Payment successful! Your wallet will be updated shortly.");
-            setAddFundsAmount("");
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        toast.error("Payment system failed to load. Please refresh the page and try again.");
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_KEY_ID,
+        amount: result.order.amount,
+        currency: "INR",
+        name: "DeployLite",
+        description: "Add funds to DeployLite Wallet",
+        image: "/logo.png",
+        order_id: result.order.id,
+        prefill: { 
+          name: user.name, 
+          email: user.email 
+        },
+        notes: { 
+          address: "DeployLite Corporate Office",
+          user_id: user.email,
+          amount: amount.toString()
+        },
+        theme: { color: "#8B5CF6" },
+        
+        // Direct success handler - no webhook dependency!
+        handler: async function (response: any) {
+          console.log('💰 Payment success response from Razorpay:', response);
+          
+          try {
+            // Show immediate feedback
+            toast.loading("Processing your payment...");
             
-            // Fetch updated wallet data after successful payment
+            // Call our direct success handler
+            const successResponse = await fetch('/api/payment-success', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                order_amount: amount
+              })
+            });
+
+            const successData = await successResponse.json();
+            console.log('✅ Payment processing result:', successData);
+
+            if (successData.success) {
+              toast.dismiss();
+              toast.success(`Payment successful! ₹${amount} added to your wallet!`);
+              
+              setAddFundsAmount("");
+              
+              // Update wallet data immediately with proper immutable handling
+              setWalletData(prev => {
+                if (!prev) return null;
+                
+                const newTransaction = {
+                  amount: amount,
+                  type: 'credit' as const,
+                  description: `Payment via Razorpay - Payment: ${successData.data.paymentId}`,
+                  date: new Date().toISOString(),
+                  _id: successData.data.paymentId
+                };
+
+                return {
+                  ...prev,
+                  balance: successData.data.newBalance,
+                  transactions: [...prev.transactions, newTransaction]
+                };
+              });
+              
+              // Also refresh from server to ensure consistency
+              setTimeout(() => {
+                fetchUserAndWalletData();
+              }, 1000);
+              
+            } else {
+              toast.dismiss();
+              toast.error(successData.message || "Payment processing failed");
+              console.error('❌ Payment processing failed:', successData);
+            }
+            
+          } catch (processingError) {
+            console.error('💥 Error processing payment success:', processingError);
+            toast.dismiss();
+            toast.error("Payment successful but processing failed. Please refresh the page.");
+            
             setTimeout(() => {
               fetchUserAndWalletData();
             }, 2000);
-          },
-          modal: {
-            ondismiss: function() {
-              console.log('Payment modal dismissed');
-              toast.info("Payment cancelled");
-            }
           }
-        };
+        },
+        
+        modal: {
+          ondismiss: function() {
+            console.log('🚫 Payment modal dismissed');
+            toast.info("Payment cancelled");
+          }
+        }
+      };
 
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      } else {
-        toast.error(result.message || "Payment initialization failed");
-      }
+      console.log('🚀 Opening Razorpay checkout...');
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+      
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('💥 Payment error:', error);
       toast.error("Payment failed. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Debug functions
+  const handleDebugAction = async (action: string, data?: any) => {
+    try {
+      setDebugLoading(true);
+      console.log(`🔧 Executing debug action: ${action}`);
+      
+      const response = await fetch('/api/debug/wallet', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...data })
+      });
+
+      const result = await response.json();
+      console.log(`🔧 Debug action result:`, result);
+      
+      if (result.success) {
+        toast.success(result.message);
+        await Promise.all([
+          fetchUserAndWalletData(),
+          fetchDebugData()
+        ]);
+      } else {
+        toast.error(result.message || 'Debug action failed');
+      }
+    } catch (error) {
+      console.error('Debug action error:', error);
+      toast.error('Debug action failed');
+    } finally {
+      setDebugLoading(false);
     }
   };
 
@@ -384,9 +616,20 @@ export default function WalletComponent() {
   const handleRefresh = async () => {
     await Promise.all([
       fetchUserAndWalletData(),
-      fetchProjects()
+      fetchProjects(),
+      debugMode ? fetchDebugData() : Promise.resolve()
     ]);
     toast.success("Data refreshed successfully!");
+  };
+
+  // Toggle debug mode
+  const toggleDebugMode = () => {
+    const newDebugMode = !debugMode;
+    setDebugMode(newDebugMode);
+    
+    if (newDebugMode) {
+      fetchDebugData();
+    }
   };
 
   // Calculate statistics
@@ -427,9 +670,11 @@ export default function WalletComponent() {
     };
   };
 
-  // Generate chart data
+  // Enhanced chart data generation with safety checks
   const generateChartData = () => {
-    if (!walletData) return null;
+    if (!walletData?.transactions || !Array.isArray(walletData.transactions)) {
+      return null;
+    }
 
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
@@ -438,14 +683,22 @@ export default function WalletComponent() {
     }).reverse();
 
     const dailySpend = last7Days.map(date => {
+      // Safe filtering with proper array checks
       const dayTransactions = walletData.transactions.filter(tx => {
-        const txDate = new Date(tx.date);
-        return (
-          txDate.toDateString() === date.toDateString() &&
-          tx.type === 'debit'
-        );
+        if (!tx || !tx.date || tx.type !== 'debit') return false;
+        
+        try {
+          const txDate = new Date(tx.date);
+          return txDate.toDateString() === date.toDateString();
+        } catch {
+          return false; // Invalid date
+        }
       });
-      return dayTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+      
+      return dayTransactions.reduce((sum, tx) => {
+        const amount = Number(tx.amount) || 0;
+        return sum + amount;
+      }, 0);
     });
 
     return {
@@ -505,7 +758,7 @@ export default function WalletComponent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900/50 to-black">
-      <Toaster position="top-right" />
+      <DynamicToaster position="top-right" />
       
       <motion.div
         initial={{ opacity: 0 }}
@@ -525,21 +778,134 @@ export default function WalletComponent() {
               </h1>
               <p className="text-gray-400 mt-2">Manage your DeployLite balance and transactions</p>
             </div>
-            <Button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              variant="outline"
-              className="border-purple-500/30 hover:bg-purple-500/10"
-            >
-              {refreshing ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCwIcon className="w-4 h-4 mr-2" />
-              )}
-              Refresh
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={toggleDebugMode}
+                variant="outline"
+                size="sm"
+                className="border-yellow-500/30 hover:bg-yellow-500/10"
+              >
+                <Bug className="w-4 h-4 mr-2" />
+                Debug {debugMode ? 'On' : 'Off'}
+              </Button>
+              <Button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                variant="outline"
+                className="border-purple-500/30 hover:bg-purple-500/10"
+              >
+                {refreshing ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCwIcon className="w-4 h-4 mr-2" />
+                )}
+                Refresh
+              </Button>
+            </div>
           </div>
         </motion.div>
+
+        {/* Debug Panel */}
+        {debugMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Card className="bg-gradient-to-br from-yellow-900/20 via-gray-900/90 to-black border border-yellow-500/30">
+              <CardHeader>
+                <CardTitle className="text-yellow-400 flex items-center gap-2">
+                  <Bug className="w-5 h-5" />
+                  Debug Panel
+                </CardTitle>
+                <CardDescription className="text-yellow-300/70">
+                  Diagnostic tools and wallet troubleshooting
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <Button
+                      onClick={() => handleDebugAction('recalculate_balance')}
+                      disabled={debugLoading}
+                      size="sm"
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    >
+                      {debugLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCwIcon className="w-4 h-4 mr-2" />}
+                      Recalculate Balance
+                    </Button>
+                    <Button
+                      onClick={() => handleDebugAction('cleanup_temp_payments')}
+                      disabled={debugLoading}
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      {debugLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
+                      Cleanup Temp Payments
+                    </Button>
+                    <Button
+                      onClick={() => handleDebugAction('create_test_transaction', { amount: 10 })}
+                      disabled={debugLoading}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {debugLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                      Add Test ₹10
+                    </Button>
+                    <Button
+                      onClick={fetchDebugData}
+                      disabled={debugLoading}
+                      size="sm"
+                      variant="outline"
+                      className="border-yellow-500/30 hover:bg-yellow-500/10"
+                    >
+                      {debugLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCwIcon className="w-4 h-4 mr-2" />}
+                      Refresh Debug
+                    </Button>
+                  </div>
+
+                  {debugData && (
+                    <div className="mt-4">
+                      <details className="bg-black/30 p-4 rounded-lg border border-yellow-500/20">
+                        <summary className="cursor-pointer font-medium text-yellow-300 hover:text-yellow-200">
+                          Debug Information (Click to expand)
+                        </summary>
+                        <div className="mt-3 space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div className="bg-gray-800/50 p-3 rounded">
+                              <h4 className="text-green-400 font-medium mb-2">Wallet Status</h4>
+                              <p className="text-gray-300">Balance: ₹{debugData.wallet?.balance || 0}</p>
+                              <p className="text-gray-300">Transactions: {debugData.wallet?.transactionCount || 0}</p>
+                              <p className="text-gray-300">Type: {typeof debugData.wallet?.balance}</p>
+                            </div>
+                            <div className="bg-gray-800/50 p-3 rounded">
+                              <h4 className="text-blue-400 font-medium mb-2">Temp Payments</h4>
+                              <p className="text-gray-300">User Pending: {debugData.tempPayments?.userPayments?.length || 0}</p>
+                              <p className="text-gray-300">All Recent: {debugData.tempPayments?.allRecentPayments?.length || 0}</p>
+                            </div>
+                            <div className="bg-gray-800/50 p-3 rounded">
+                              <h4 className="text-purple-400 font-medium mb-2">Environment</h4>
+                              <p className="text-gray-300">Mode: {debugData.environment?.nodeEnv}</p>
+                              <p className="text-gray-300">Razorpay: {debugData.environment?.razorpayKeyId}</p>
+                            </div>
+                          </div>
+                          <details className="bg-gray-900/50 p-3 rounded border border-gray-700">
+                            <summary className="cursor-pointer text-gray-400 hover:text-gray-300">
+                              Full Debug Data (JSON)
+                            </summary>
+                            <pre className="mt-2 text-xs overflow-x-auto text-gray-400">
+                              {JSON.stringify(debugData, null, 2)}
+                            </pre>
+                          </details>
+                        </div>
+                      </details>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Main Balance Card */}
         <motion.div
@@ -576,11 +942,24 @@ export default function WalletComponent() {
               <div className="mt-6 flex items-center gap-4">
                 <div>
                   <p className="text-5xl font-bold text-purple-400">
-                    {balanceVisible ? `₹${walletData?.balance || 0}` : '₹****'}
+                    {balanceVisible ? `₹${walletData?.balance?.toFixed(2) || '0.00'}` : '₹****'}
                   </p>
                   <p className="text-gray-400 mt-2">
                     Last updated: {new Date().toLocaleString()}
                   </p>
+                </div>
+                <div className="ml-4">
+                  {walletData?.balance !== undefined ? (
+                    <div className="flex items-center gap-2 text-green-400">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="text-sm">Verified</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-yellow-400">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Loading...</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -656,10 +1035,10 @@ export default function WalletComponent() {
             <CardHeader>
               <CardTitle className="text-gray-100 flex items-center gap-2">
                 <Plus className="w-5 h-5 text-purple-400" />
-                Add Funds
+                Add Funds - Direct Success Flow
               </CardTitle>
               <CardDescription className="text-gray-400">
-                Add money to your DeployLite wallet for deployments
+                Add money instantly to your wallet with direct payment processing
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -679,17 +1058,18 @@ export default function WalletComponent() {
                 </div>
                 <div className="flex gap-4">
                   <Input
-                    placeholder="Enter amount"
+                    placeholder="Enter amount (min ₹1)"
                     value={addFundsAmount}
                     onChange={(e) => setAddFundsAmount(e.target.value)}
                     className="bg-black/50 border-gray-700 text-white"
                     type="number"
                     min="1"
+                    max="50000"
                   />
                   <Button
                     onClick={handleRazorpayPayment}
-                    disabled={loading || !addFundsAmount}
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 min-w-[120px]"
+                    disabled={loading || !addFundsAmount || Number(addFundsAmount) <= 0}
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 min-w-[140px]"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -700,6 +1080,11 @@ export default function WalletComponent() {
                       </>
                     )}
                   </Button>
+                </div>
+                <div className="text-xs text-gray-500 space-y-1">
+                  <p>✓ Instant wallet update on payment success</p>
+                  <p>✓ No webhook dependency for faster processing</p>
+                  <p>✓ Enhanced error handling and retry mechanism</p>
                 </div>
               </div>
             </CardContent>
@@ -743,7 +1128,7 @@ export default function WalletComponent() {
           transition={{ delay: 0.4 }}
         >
           <Tabs defaultValue="transactions" className="w-full">
-            <TabsList className="grid grid-cols-4 bg-gradient-to-r from-gray-900/50 to-black/50 border border-purple-500/20">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="transactions" className="data-[state=active]:bg-purple-500/20">
                 Transactions
               </TabsTrigger>
@@ -758,24 +1143,40 @@ export default function WalletComponent() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Transactions Tab */}
+            {/* Transactions Tab - FIXED SORTING */}
             <TabsContent value="transactions">
               <Card className="bg-gradient-to-br from-black via-gray-900/90 to-black border border-purple-500/20">
                 <CardHeader>
-                  <CardTitle className="text-gray-100">Transaction History</CardTitle>
-                  <CardDescription className="text-gray-400">
-                    All your wallet transactions
-                  </CardDescription>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="text-gray-100">Transaction History</CardTitle>
+                      <CardDescription className="text-gray-400">
+                        All your wallet transactions with enhanced details
+                      </CardDescription>
+                    </div>
+                    <Button
+                      onClick={fetchUserAndWalletData}
+                      disabled={refreshing}
+                      variant="outline"
+                      size="sm"
+                      className="border-purple-500/30 hover:bg-purple-500/10"
+                    >
+                      {refreshing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCwIcon className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {walletData?.transactions && walletData.transactions.length > 0 ? (
                     <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {walletData.transactions
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .map((tx, index) => (
+                      {/* FIXED: Use getSortedTransactions helper function */}
+                      {getSortedTransactions(walletData.transactions).map((tx, index) => (
                         <div
-                          key={index}
-                          className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50 border border-gray-700/50"
+                          key={tx._id || index}
+                          className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50 border border-gray-700/50 hover:bg-gray-800/70 transition-colors"
                         >
                           <div className="flex items-center gap-4">
                             <div className={`p-2 rounded-lg ${
@@ -794,21 +1195,31 @@ export default function WalletComponent() {
                                 {new Date(tx.date).toLocaleDateString()} at{' '}
                                 {new Date(tx.date).toLocaleTimeString()}
                               </p>
+                              {tx._id && (
+                                <p className="text-xs text-gray-500 font-mono">
+                                  ID: {tx._id.slice(-8)}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">
                             <p className={`font-bold ${
                               tx.type === 'credit' ? 'text-green-400' : 'text-red-400'
                             }`}>
-                              {tx.type === 'credit' ? '+' : '-'}₹{tx.amount}
+                              {tx.type === 'credit' ? '+' : '-'}₹{Number(tx.amount).toFixed(2)}
                             </p>
+                            <p className="text-xs text-gray-500 capitalize">{tx.type}</p>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <p className="text-gray-400">No transactions found</p>
+                      <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FileTextIcon className="w-8 h-8 text-gray-500" />
+                      </div>
+                      <p className="text-gray-400 mb-2">No transactions found</p>
+                      <p className="text-sm text-gray-500">Your transaction history will appear here</p>
                     </div>
                   )}
                 </CardContent>
@@ -831,7 +1242,11 @@ export default function WalletComponent() {
                     </div>
                   ) : (
                     <div className="h-80 flex items-center justify-center">
-                      <p className="text-gray-400">No data available for chart</p>
+                      <div className="text-center">
+                        <TrendingUpIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                        <p className="text-gray-400">No data available for chart</p>
+                        <p className="text-sm text-gray-500 mt-2">Make some transactions to see analytics</p>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -931,9 +1346,9 @@ export default function WalletComponent() {
                       </div>
 
                       <div className="space-y-4">
-                        <Label htmlFor="cryptoAmount" className="text-gray-200">
+                        <label htmlFor="cryptoAmount" className="text-gray-200 text-sm font-medium block">
                           Payment Amount (ETH)
-                        </Label>
+                        </label>
                         <div className="flex gap-2">
                           <Input
                             id="cryptoAmount"
