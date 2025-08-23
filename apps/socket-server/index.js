@@ -1,13 +1,13 @@
 import { Server } from 'socket.io';
 import { createServer } from 'http';
 import Redis from 'ioredis';
-
+import 'dotenv/config'
 
 const redisConfig = {
-    host: 'valkey-1dec9a5f-basirkhanaws-5861.c.aivencloud.com',
-    port: 24291,
-    username: 'default',
-    password: 'AVNS__TnY6dEjpphUtR6tTl4',
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+    username: process.env.REDIS_USERNAME,
+    password: process.env.REDIS_PASSWORD,
     tls: {}
 };
 
