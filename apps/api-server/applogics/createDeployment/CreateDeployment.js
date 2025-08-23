@@ -62,7 +62,7 @@ const CreateDeployment = async (req, res) => {
         let depdata = await Deployment.findOneAndUpdate({
           projectid: projectid
         }, { status: "started", deploymentdate: new Date(), commit_message: "Deployment Created By Deploylite", author_name: "DeployLite" })
-        let updateproject = await Project.findOneAndUpdate({ _id: projectid }, { projecturl: `${projectname}.cloud.deploylite.tech`, memoryusage: 0, cpuusage: 0, storageusage: 0 })
+        let updateproject = await Project.findOneAndUpdate({ _id: projectid }, { projecturl: `${projectname}.cloud.deploylite.xyz`, memoryusage: 0, cpuusage: 0, storageusage: 0 })
         const result = await fetch(`${process.env.DEPLOYMENT_API}/deploy/react`, {
           method: "POST",
           headers: {
@@ -99,7 +99,7 @@ const CreateDeployment = async (req, res) => {
         let depdata = await Deployment.findOneAndUpdate({
           projectid: projectid
         }, { status: "started", deploymentdate: new Date(), commit_message: "Deployment Created By Deploylite", author_name: "DeployLite" })
-        let updateproject = await Project.findOneAndUpdate({ _id: projectid }, { projecturl: `${projectname}.host.deploylite.tech`, memoryusage: 0, cpuusage: 0, storageusage: 0 })
+        let updateproject = await Project.findOneAndUpdate({ _id: projectid }, { projecturl: `${projectname}.host.deploylite.xyz`, memoryusage: 0, cpuusage: 0, storageusage: 0 })
         //start deployment for react
         console.log("nextjs deployment started")
         const result = await fetch(`${process.env.DEPLOYMENT_API}/deploy/fullstack`, {
@@ -178,7 +178,7 @@ const CreateDeployment = async (req, res) => {
         let depdata = await Deployment.findOneAndUpdate({
           projectid: projectid
         }, { status: "started", deploymentdate: new Date(), commit_message: "Deployment Created By Deploylite", author_name: "DeployLite" })
-        let updateproject = await Project.findOneAndUpdate({ _id: projectid }, { projecturl: `${projectname}.cloud.deploylite.tech`, memoryusage: 0, cpuusage: 0, storageusage: 0 })
+        let updateproject = await Project.findOneAndUpdate({ _id: projectid }, { projecturl: `${projectname}.cloud.deploylite.xyz`, memoryusage: 0, cpuusage: 0, storageusage: 0 })
         const result = await fetch(`${process.env.DEPLOYMENT_API}/deploy/angular`, {
           method: "POST",
           headers: {
@@ -215,7 +215,7 @@ const CreateDeployment = async (req, res) => {
         let depdata = await Deployment.findOneAndUpdate({
           projectid: projectid
         }, { status: "started", deploymentdate: new Date(), commit_message: "Deployment Created By Deploylite", author_name: "DeployLite" })
-        let updateproject = await Project.findOneAndUpdate({ _id: projectid }, { projecturl: `${projectname}.cloud.deploylite.tech`, memoryusage: 0, cpuusage: 0, storageusage: 0 })
+        let updateproject = await Project.findOneAndUpdate({ _id: projectid }, { projecturl: `${projectname}.cloud.deploylite.xyz`, memoryusage: 0, cpuusage: 0, storageusage: 0 })
         const result = await fetch(`${process.env.DEPLOYMENT_API}/deploy/react`, {
           method: "POST",
           headers: {
@@ -256,7 +256,7 @@ const CreateDeployment = async (req, res) => {
         let depdata = await Deployment.findOneAndUpdate({
           projectid: projectid
         }, { status: "started", deploymentdate: new Date(), commit_message: "Deployment Created By Deploylite", author_name: "DeployLite" })
-        let updateproject = await Project.findOneAndUpdate({ _id: projectid }, { projecturl: `${projectname}.cloud.deploylite.tech`, memoryusage: 0, cpuusage: 0, storageusage: 0 })
+        let updateproject = await Project.findOneAndUpdate({ _id: projectid }, { projecturl: `${projectname}.cloud.deploylite.xyz`, memoryusage: 0, cpuusage: 0, storageusage: 0 })
         const result = await fetch(`${process.env.DEPLOYMENT_API}/deploy/frontend`, {
           method: "POST",
           headers: {

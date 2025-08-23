@@ -36,7 +36,7 @@ const CreateWebbuilder = async (req, res) => {
         let updateproject = await WebBuilder.findOneAndUpdate(
             { _id: projectid }, 
             { 
-                projecturl: `${projectname}.host.deploylite.tech`, 
+                projecturl: `${projectname}.host.deploylite.xyz`, 
                 memoryusage: 0, 
                 cpuusage: 0, 
                 storageusage: 0,
@@ -119,7 +119,7 @@ const CreateWebbuilder = async (req, res) => {
                     success: true,
                     message: "WebBuilder Deployment Started Successfully",
                     data: {
-                        projectUrl: `https://${projectname}.host.deploylite.tech`,
+                        projectUrl: `https://${projectname}.host.deploylite.xyz`,
                         publicIp: data2.url,
                         taskArn: data.data.tasks[0].taskArn
                     }
