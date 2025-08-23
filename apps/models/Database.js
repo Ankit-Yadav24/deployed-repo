@@ -18,10 +18,7 @@ cpuusage:{type:String, default: "0"},
 memoryusage:{type:String, default: "0"},
 storageusage:{type:String, default: "0"},
 planid:{ type: Schema.Types.ObjectId,ref:'PricingPlan', required: true},
-startbilingdate:{type:Date},
-endbilingdate:{type:Date},
-billstatus:{type:String, default: "pending"},
-arn:{type:String,default:""},
+
 projecturl:{type:String,default:""},
 uiurl:{type:String,default:""},
 },{timestamps:true})
