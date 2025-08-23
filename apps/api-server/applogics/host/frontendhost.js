@@ -19,7 +19,7 @@ const frontendHost = async (req, res) => {
       awsvpcConfiguration: {
         assignPublicIp: "ENABLED",
         subnets: ["subnet-00a4a1974e1475145","subnet-06cb98fe49a3146b1","subnet-0379dfa5edb2e396e"],
-        securityGroups: ["sg-075ea9c843014612d"],
+        securityGroups: ["sg-07cf7978f8cd46a56"],
       },
     },
     overrides: {
