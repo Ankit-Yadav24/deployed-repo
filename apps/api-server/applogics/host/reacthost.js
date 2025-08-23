@@ -23,7 +23,7 @@ const reactHost = async (req, res) => {
       awsvpcConfiguration: {
         assignPublicIp: "ENABLED",
         subnets: ["subnet-0116e9fa22a512fc2","subnet-090ec3bdc55b382e1","subnet-004a2cb9605dcf070"],
-        securityGroups: ["sg-09cd52a2ed850a619"],
+        securityGroups: ["sg-075ea9c843014612d"],
       },
     },
     overrides: {
