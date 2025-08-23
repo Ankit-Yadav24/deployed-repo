@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import Image from 'next/image'
 import { 
   Cloud, 
   CreditCard, 
@@ -181,7 +182,12 @@ export default function VultrPage() {
         <motion.div variants={fadeIn} className="text-center">
           <div className="flex items-center justify-center mb-6">
             <div className="p-4 bg-gradient-to-r from-pink-500/20 to-purple-500/20 rounded-2xl">
-              <Cloud className="w-12 h-12 text-pink-400" />
+               <Image
+              src="/vultr.png"
+              alt="oops"
+              height={60}
+              width={60}
+              />
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent mb-4">
