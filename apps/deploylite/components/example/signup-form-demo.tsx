@@ -6,11 +6,6 @@ import { cn } from "@/lib/utils";
 import { toast } from 'sonner'
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  IconBrandGithub,
-  IconBrandGoogle,
-  IconBrandOnlyfans,
-} from "@tabler/icons-react";
 import { useState } from "react";
 import Head from "next/head";
 import LoginLoader from "@/utils/Loaders/LoginLoader";
