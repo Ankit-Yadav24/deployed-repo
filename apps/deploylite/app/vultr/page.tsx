@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import DeployOnVultr from '@/utils/api-calls-vltr/deploy'
 import Image from 'next/image'
 import { 
   Cloud, 
@@ -396,7 +397,11 @@ export default function VultrPage() {
                         </div>
                         <Button 
                           className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white border-0 rounded-xl font-medium shadow-lg shadow-pink-500/25"
-                          onClick={() => window.open('/project/app-platform', '_blank')}
+                          onClick={async() =>{ 
+                            let rand = Math.ceil(Math.random()*100);
+                            await DeployOnVultr(`deploylite-container-appplatform${rand}`)
+                            window.open('/project/app-platform', '_blank')
+                          }}      
                         >
                           <Plus className="w-4 h-4 mr-2" />
                           Create App
@@ -430,7 +435,10 @@ export default function VultrPage() {
                         </div>
                         <Button 
                           className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0 rounded-xl font-medium shadow-lg shadow-blue-500/25"
-                          onClick={() => window.open('/project/webbuilder', '_blank')}
+                          onClick={async() => {
+                             let rand = Math.ceil(Math.random()*100);
+                            await DeployOnVultr(`deploylite-container-webbuilder${rand}`)
+                            window.open('/project/webbuilder', '_blank')}}
                         >
                           <Plus className="w-4 h-4 mr-2" />
                           Create Website
@@ -464,7 +472,10 @@ export default function VultrPage() {
                         </div>
                         <Button 
                           className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 rounded-xl font-medium shadow-lg shadow-green-500/25"
-                          onClick={() => window.open('/project/database', '_blank')}
+                          onClick={async() => {
+                             let rand = Math.ceil(Math.random()*100);
+                            await DeployOnVultr(`deploylite-container-database${rand}`)
+                            window.open('/project/database', '_blank')}}
                         >
                           <Plus className="w-4 h-4 mr-2" />
                           Create Database
@@ -498,7 +509,11 @@ export default function VultrPage() {
                         </div>
                         <Button 
                           className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white border-0 rounded-xl font-medium shadow-lg shadow-yellow-500/25"
-                          onClick={() => window.open('/project/chatbot', '_blank')}
+                          onClick={async() => {
+                            let rand = Math.ceil(Math.random()*100);
+                            await DeployOnVultr(`deploylite-container-chatbot${rand}`)
+                            window.open('/project/chatbot', '_blank')
+                          }}
                         >
                           <Plus className="w-4 h-4 mr-2" />
                           Create Chatbot
