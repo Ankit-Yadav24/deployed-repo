@@ -14,7 +14,7 @@ export const CallToAction = () => {
     setIsSubmitted(true)
     // Simulate submission
     setTimeout(() => {
-      window.location.href = `https://app.deploylite.tech/signup?email=${email}`
+      window.location.href = `https://app.deploylite.xyz/signup?email=${email}`
     }, 1000)
   }
 

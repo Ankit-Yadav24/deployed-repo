@@ -69,7 +69,7 @@ export const ProductShowcase = () => {
               </div>
               <div className="flex-1 mx-4">
                 <div className="bg-gray-700 rounded px-3 py-1 text-xs text-gray-300">
-                  app.deploylite.tech
+                  app.deploylite.xyz
                 </div>
               </div>
             </div>
