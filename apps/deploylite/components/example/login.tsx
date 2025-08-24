@@ -187,18 +187,7 @@ export default function Login() {
 
           <div className="h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent my-6" />
 
-          <button
-            type="button"
-            onClick={() => {
-              const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI}&scope=${process.env.NEXT_PUBLIC_GOOGLE_SCOPE}&response_type=code&access_type=offline`;
-              window.open(url, "_self");
-            }}
-            className="flex items-center justify-center space-x-2 w-full h-10 bg-gray-100 dark:bg-zinc-800 rounded-md shadow-sm text-sm font-medium text-neutral-800 dark:text-neutral-300"
-          >
-            <IconBrandGoogle className="w-4 h-4" />
-            <span>Continue with Google</span>
-            <BottomGradient />
-          </button>
+         
         </form>
       </div>
     </main>
