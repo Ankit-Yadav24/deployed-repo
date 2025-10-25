@@ -220,11 +220,35 @@ console.log("response data is ",response.output_text);
       });
       const data = await response.json();
 
-      const testMessage = `Analyze this repository code and provide a build score (0-100) and detailed feedback: ${JSON.stringify(data)} in json like {"buildScore":85,"feedback":"..."} format. please strict to this format and do not add any extra text. Only return the json object. dont add json key "data" or "result" or "response" or "output" or "message" or "text". Only return the json object.`;
+      // const testMessage = `Analyze this repository code and provide a build score (0-100) and detailed feedback: ${JSON.stringify(data)} in json like {"buildScore":85,"feedback":"..."} format. please strict to this format and do not add any extra text. Only return the json object. dont add json key "data" or "result" or "response" or "output" or "message" or "text". Only return the json object.`;
+      // Step 1: Limit file data length
+const serializedData = JSON.stringify(data).slice(0, 15000); // Limit to 15k characters
+
+// Step 2: Construct prompt
+const testMessage = `
+Analyze this repository and provide a build score (0–100) and feedback.
+Repository snippet:
+${serializedData}
+
+Return ONLY a JSON object like:
+{"buildScore":85,"feedback":"..."}
+`;
+
       const response2 = await queryAiAgent(testMessage);
-      const newresponse = response2.split('```json')[1]?.split('```')[0].trim();
-      console.log('AI Response:', newresponse);
-      const parsedResponse = JSON.parse(newresponse);
+      // const newresponse = response2.split('```json')[1]?.split('```')[0].trim();
+      // console.log('AI Response:', newresponse);
+      // const parsedResponse = JSON.parse(newresponse);
+
+      let parsedResponse = { buildScore: 0, feedback: "Invalid AI response" };
+
+try {
+  const newresponse = response2.split('```json')[1]?.split('```')[0].trim() || response2;
+  console.log("AI Response:", newresponse);
+  parsedResponse = JSON.parse(newresponse);
+} catch (err) {
+  console.error("Analysis error:", err);
+}
+
 
       console.log('AI parsed Response:', parsedResponse);
 

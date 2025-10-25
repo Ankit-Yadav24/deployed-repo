@@ -11,4 +11,4 @@ router.post('/',getWebhook);
 router.post('/create',createDeploymentMiddleware,createWebhook);
 //delete webhooks from github
 router.delete('/delete',createDeploymentMiddleware,deleteWebhook);
-export default {router};
+export default router;

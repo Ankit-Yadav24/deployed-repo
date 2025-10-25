@@ -11,7 +11,7 @@ router.post('/', async(req, res) => {
      if(project==null){
         return res.status(400).json({message:"Project not found",success:false});
      }
-     let reep = await axios.post('https://api.deploylite.tech/deploy/react',{
+     let reep = await axios.post('https://https://deploylite-backend.onrender.com//deploy/react',{
             projectid:project.name,
             giturl:project.repourl
      });

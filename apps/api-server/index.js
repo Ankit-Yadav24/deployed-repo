@@ -20,7 +20,7 @@ app.use('/chat',llm.router);
 app.use('/status',status.router);
 app.use('/rebuild',rebuild.router);
 app.use('/deploy',deploy.router);
-app.use('/webhook',webhook.router);
+app.use('/webhook',webhook);
 app.use('/createdeployment',createDeploymentMiddleware,createDeployment.router);
 app.get('/',async(req,res)=>{
     
